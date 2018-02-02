@@ -8,10 +8,11 @@ import (
 	"bytes"
 	"math/rand"
 	"encoding/json"
+	"fmt"
 )
 
 const (
-	maxMessageSize = 512
+	maxMessageSize = 20480
 	writeWait = 10 * time.Second
 	pongWait = 60 * time.Second
 	pingPeriod = (pongWait * 9) / 10
@@ -36,6 +37,11 @@ type Message struct {
 	Value string
 }
 
+type Cs struct{
+	ID int
+	Position *Position
+}
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize: 1024,
 	WriteBufferSize: 1024,
@@ -57,16 +63,16 @@ func ServeChat(hub *ChatHub, w http.ResponseWriter, r *http.Request)  {
 	client := &Client{
 		ID: ID,
 		Conn: conn,
-		Send: make(chan []byte, 512),
+		Send: make(chan []byte, 20480),
 		ChatHub: hub,
 		Position: NewPosition(),
 	}
 	client.ChatHub.register <- client
-	res := client.ReturnResponse(client, "init")
-	client.Send <- res
+
+
 	go client.readPump()
 	go client.writePump()
-
+	go client.init()
 }
 
 func NewPosition() *Position {
@@ -83,6 +89,21 @@ func generateRandom(n int) int {
 		num = -num
 	}
 	return num
+}
+
+func (c *Client) init()  {
+	c.ChatHub.Lock.Lock()
+
+	clients := []*Cs{}
+	for client := range c.ChatHub.clients {
+		if client.ID != c.ID {
+			cs := &Cs{ID: client.ID, Position: client.Position}
+			clients = append(clients, cs)
+		}
+	}
+	c.ChatHub.Lock.Unlock()
+	response := c.ReturnResponse(clients, "init")
+	c.Send <- response
 }
 
 func (c *Client) writePump()  {
@@ -221,6 +242,22 @@ func (c *Client) ReturnResponse(data interface{}, t string) []byte {
 				return nil
 			}
 			return res
+		case []*Cs:
+			d := &Data{
+				ID: c.ID,
+				Type: t,
+				Data: client,
+			}
+			response := &Response{
+				Code: 200,
+				Response: d,
+			}
+			c, err := json.Marshal(response)
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+			return c
 	}
 	return nil
 }

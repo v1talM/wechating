@@ -1,6 +1,9 @@
 package hub
 
+import "sync"
+
 type ChatHub struct {
+	Lock sync.Mutex
 	register chan *Client
 	unregister chan *Client
 	broadcasts chan []byte
@@ -20,7 +23,9 @@ func (h *ChatHub) Run()  {
 	for {
 		select {
 			case client := <- h.register:
+				h.Lock.Lock()
 				h.clients[client] = true
+				h.Lock.Unlock()
 			case client := <- h.unregister:
 				if _,ok := h.clients[client]; ok {
 					delete(h.clients, client)
