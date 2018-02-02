@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"math/rand"
 	"encoding/json"
-	"fmt"
 )
 
 const (
@@ -63,7 +62,8 @@ func ServeChat(hub *ChatHub, w http.ResponseWriter, r *http.Request)  {
 		Position: NewPosition(),
 	}
 	client.ChatHub.register <- client
-
+	res := client.ReturnResponse(client, "init")
+	client.Send <- res
 	go client.readPump()
 	go client.writePump()
 
@@ -172,7 +172,6 @@ func (c *Client) changePosition(pos string)  {
 	}
 	if c.Position.PositionX + position.PositionX < mapX && c.Position.PositionX + position.PositionX > -mapX {
 		c.Position.PositionX += position.PositionX
-		fmt.Println(c.Position.PositionX)
 	}
 	if c.Position.PositionY + position.PositionY < mapY && c.Position.PositionY + position.PositionY > -mapY {
 		c.Position.PositionY += position.PositionY

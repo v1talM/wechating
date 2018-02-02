@@ -19,7 +19,7 @@ func main() {
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		hub.ServeChat(chatHub, w, r)
 	})
-
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	err := http.ListenAndServe(*addr, nil)
 	if err != nil {
 		log.Fatal("http ListenAndServe error:", err)
@@ -36,7 +36,6 @@ func serveHome(w http.ResponseWriter, r *http.Request)  {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	http.ServeFile(w, r, "resource/home.html")
+	http.ServeFile(w, r, "static/home.html")
 }
-
 

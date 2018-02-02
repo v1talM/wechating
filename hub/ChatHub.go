@@ -1,8 +1,5 @@
 package hub
 
-import (
-)
-
 type ChatHub struct {
 	register chan *Client
 	unregister chan *Client
